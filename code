@@ -1,0 +1,39 @@
+# Load necessary libraries
+library(deSolve)
+library(ggplot2)
+
+# Define the SIER model function
+sier_model <- function(time, state, parameters) {
+  with(as.list(c(state, parameters)), {
+    dS <- -infection * S * I + vaccination_rate * S
+    dE <- infection * S * I - exposure_rate * E 
+    dI <- exposure_rate * E - (recovery_rate + death_rate) * I - I*induced_death_rate
+    dR <- recovery_rate * I + vaccination_rate * S - R*death_rate - I*induced_death_rate
+    return(list(c(dS, dE, dI, dR)))
+  })
+}
+
+# Set parameters
+parameters <- c(infection = 0.3, exposure_rate = 0.2, recovery_rate = 0.03, death_rate = 0.02, vaccination_rate = 0.2, induced_death_rate = 0.2)
+
+# Set initial state
+initial_state <- c(S = 0.90, E = 0.10, I = 0.2, R = 0)
+
+# Set time points to solve the ODEs
+times <- seq(0, 60, by = 1)
+
+# Solve the ODEs
+out <- ode(y = initial_state, times = times, func = sier_model, parms = parameters)
+
+# Convert the output to a data frame for easier plotting
+results <- as.data.frame(out)
+
+# Plot the results with S, E, I, R compartments
+ggplot(results, aes(x = time)) +
+  geom_line(aes(y = S, color = "Susceptible")) +
+  geom_line(aes(y = E, color = "Exposed")) +
+  geom_line(aes(y = I, color = "Infectious")) +
+  geom_line(aes(y = R, color = "Recovered")) +
+  labs(x = "months", y = "population (millions)", title = "SEIR Model with full vaccination") +
+  scale_color_manual(values = c("Susceptible" = "blue", "Exposed" = "yellow", "Infectious" = "red", "Recovered" = "green")) +
+  theme_minimal()
